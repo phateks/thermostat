@@ -304,7 +304,7 @@ export class ThermostatCard extends LitElement {
       }
       if (!main) return;
 
-      // smallest full layout: header + selectors + gaps + padding + a 36 px setpoint
+      // smallest full layout: header + selectors + gaps + padding + a 30 px setpoint
       const cs = getComputedStyle(card);
       const kids = Array.from(card.children).filter(
         (el) => el !== main && !el.classList.contains('amb') && !el.classList.contains('menu')
@@ -313,7 +313,7 @@ export class ThermostatCard extends LitElement {
       const min = Math.ceil(
         kids.reduce((t, el) => t + el.offsetHeight, 0) +
           gap * kids.length +
-          36 +
+          30 +
           parseFloat(cs.paddingTop) +
           parseFloat(cs.paddingBottom) +
           parseFloat(cs.borderTopWidth) +
@@ -331,8 +331,11 @@ export class ThermostatCard extends LitElement {
 
       const h = main.clientHeight;
       if (!h) return;
-      const tight = h < 46; // too short for the SETPOINT label
-      const b = Math.round(Math.max(30, tight ? h : (h - 12) / 0.9));
+      // only MIN / MAX (heat_cool) carry a label above the number
+      // MIN / MAX (heat_cool) sit above a smaller number and fit inside the button height
+      const range = main.classList.contains('range');
+      const tight = !range;
+      const b = Math.round(Math.max(30, h));
       const cur = parseFloat(main.style.getPropertyValue('--fit')) || 0;
       if (Math.abs(b - cur) >= 1) main.style.setProperty('--fit', `${b}px`);
       if ((main.dataset.tight === '1') !== tight) main.dataset.tight = tight ? '1' : '';
@@ -368,22 +371,27 @@ export class ThermostatCard extends LitElement {
     return m ? parseFloat(m[1]) : undefined;
   }
 
-  /** Height the dashboard gives the card (height option, grid cell), or its own height otherwise. */
+  /**
+   * Height the dashboard gives the card (height option, grid cell), or its own height.
+   *
+   * Never writes a pixel height derived from the layout: in grids whose rows follow
+   * their content (Fit content, layout-card, grid card) that feeds back into the row
+   * size and the card grows forever. Instead the wrappers between this element and the
+   * grid cell get `height: 100%`, which CSS resolves in one pass (auto rows stay auto).
+   */
   private _availableHeight(): number {
     const fixed = this._configHeightPx();
-    if (fixed) {
-      if (this.style.height) this.style.height = '';
-      return fixed;
-    }
+    if (fixed) return fixed;
     const cell = this._gridCell();
     if (cell && cell !== this) {
-      // make this element fill the cell even when the wrapper in between has no height
+      let el = this._parentOf(this);
+      while (el && el !== cell) {
+        if (el.style.height !== '100%') el.style.height = '100%';
+        el = this._parentOf(el);
+      }
       const h = cell.clientHeight;
-      const want = `${h}px`;
-      if (h > 0 && this.style.height !== want) this.style.height = want;
-      return h;
+      return h > 0 ? Math.min(h, this.clientHeight || h) : this.clientHeight;
     }
-    if (this.style.height) this.style.height = '';
     return this.clientHeight;
   }
 
@@ -1254,7 +1262,7 @@ export class ThermostatCard extends LitElement {
       <div class="sp sz-${size}">
         ${btn(-1)}
         <div class="sp-center">
-          <span class="sp-label">${tag ?? 'SETPOINT'}</span>
+          ${tag ? html`<span class="sp-label">${tag}</span>` : nothing}
           <span class="sp-val ${pending ? 'pending' : ''}"
             >${keyed(`${key}:${v}`, html`<span class="roll roll-${this._rollDir}">${this._fmt(v)}</span>`)}<span
               class="u"

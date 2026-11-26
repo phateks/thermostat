@@ -105,8 +105,8 @@ With no height set, the card takes its natural, compact height. Give it a fixed 
 **Card height (px)** in the editor (useful to fit a dedicated spot, for example on a
 wall tablet), or by resizing the card in a Sections dashboard: the
 header and the selector row keep their size, and only the setpoint area in the middle
-grows or shrinks. When it gets small, the `SETPOINT` label is hidden first, then the
-number gets smaller. With even less height (for example 2 rows in a Sections
+adapts: with more height the number keeps its size and stays centred, with less height
+it gets smaller. When it gets small, the number and the − / + buttons get smaller. With even less height (for example 2 rows in a Sections
 dashboard), the card switches to a compact layout like Bubble Card: `− 24 °C +` moves
 into the header next to the buttons, and the card still fits its space without
 overlapping the card below.

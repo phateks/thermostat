@@ -293,7 +293,7 @@ export const cardStyles = css`
   .main {
     flex: 1 1 auto;
     /* below this the setpoint would not be readable: the card stops shrinking */
-    min-height: 36px;
+    min-height: 30px;
     overflow: hidden;
     display: flex;
     align-items: center;
@@ -303,7 +303,7 @@ export const cardStyles = css`
   .sp {
     --b0: 44px;
     /* --fit comes from the measured height of .main (see _fit) */
-    --b: clamp(30px, var(--fit, var(--b0)), calc(var(--b0) * 1.3));
+    --b: clamp(30px, var(--fit, var(--b0)), var(--b0));
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -345,7 +345,7 @@ export const cardStyles = css`
     overflow: hidden;
     transition: color 0.5s, opacity 0.2s;
   }
-  .range .sp-val { font-size: calc(var(--b) * 0.65); }
+  .range .sp-val { font-size: calc(var(--b) * 0.62); }
   .is-off .sp-val { color: var(--tc-txt); opacity: 0.55; }
   .sp-val .u { font-size: 0.45em; font-weight: 500; color: inherit; opacity: 0.6; margin-left: 2px; }
   .sp-val.pending { opacity: 0.55; }
