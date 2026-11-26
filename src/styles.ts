@@ -315,6 +315,23 @@ export const cardStyles = css`
   .sp.sz-medium { --b0: 38px; }
   .sp.sz-xlarge { --b0: 54px; }
   .main[data-tight='1'] .sp-label { display: none; }
+
+  /* compact (too little height): − 24 °C + sits in the header, like Bubble */
+  ha-card.compact { padding: 9px 12px; gap: 4px; }
+  .compact .title-wrap { min-width: 120px; gap: 8px; }
+  .compact .title-icon { width: 36px; height: 36px; }
+  .compact .title-icon ha-icon { --mdc-icon-size: 20px; }
+  .compact .header-controls { gap: 0; }
+  .compact .sw,
+  .compact .mode-dd { min-width: 34px; height: 36px; }
+  .compact .sw ha-icon { --mdc-icon-size: 20px; }
+  .compact .mode-dd { padding: 0 0 0 6px; }
+  .inline-sp { display: flex; align-items: center; gap: 4px; margin-right: 4px; }
+  .inline-sp .sp { --b: 30px; flex: none; max-width: none; gap: 0; }
+  .inline-sp .sp-label { display: none; }
+  .inline-sp .sp-val { font-size: 21px; min-width: 2.9em; justify-content: center; }
+  .inline-sp .sp-val .u { font-size: 0.6em; }
+  .compact .sel { height: 42px; }
   .sp-center { display: flex; flex-direction: column; align-items: center; min-width: 0; }
   .sp-label { font-size: 10px; line-height: 12px; font-weight: 700; letter-spacing: 1px; color: var(--tc-sub); }
   .sp-val {

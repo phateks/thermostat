@@ -162,6 +162,9 @@ export class ThermostatCard extends LitElement {
   /** Keeps the last opened select so the panel can animate closed with content. */
   @state() private _rollDir: 'up' | 'down' = 'up';
   @state() private _popped: string | null = null;
+  /** Too little height for the middle row: setpoint moves into the header (Bubble-like). */
+  @state() private _compact = false;
+  private _fullMin = 0;
 
   private _holdTimer?: number;
   private _held = false;
@@ -288,26 +291,44 @@ export class ThermostatCard extends LitElement {
   private _fit = () => {
     cancelAnimationFrame(this._fitRaf);
     this._fitRaf = requestAnimationFrame(() => {
-      const main = this.renderRoot.querySelector('.main') as HTMLElement | null;
       const card = this.renderRoot.querySelector('ha-card') as HTMLElement | null;
-      if (!main || !card) return;
-      // never let a small height squash the card (overflow: hidden disables the automatic
-      // flex minimum): header + selectors + gaps + padding + a 36 px setpoint
+      if (!card) return;
+      const main = this.renderRoot.querySelector('.main') as HTMLElement | null;
+      const hostH = this._availableHeight();
+
+      if (this._compact) {
+        // back to the full layout as soon as the dashboard gives enough height
+        if (this._fullMin && hostH >= this._fullMin) this._compact = false;
+        if (card.style.minHeight) card.style.minHeight = '';
+        return;
+      }
+      if (!main) return;
+
+      // smallest full layout: header + selectors + gaps + padding + a 36 px setpoint
       const cs = getComputedStyle(card);
       const kids = Array.from(card.children).filter(
         (el) => el !== main && !el.classList.contains('amb') && !el.classList.contains('menu')
       ) as HTMLElement[];
       const gap = parseFloat(cs.rowGap) || 0;
-      const min =
+      const min = Math.ceil(
         kids.reduce((t, el) => t + el.offsetHeight, 0) +
-        gap * kids.length +
-        36 +
-        parseFloat(cs.paddingTop) +
-        parseFloat(cs.paddingBottom) +
-        parseFloat(cs.borderTopWidth) +
-        parseFloat(cs.borderBottomWidth);
-      const mh = `${Math.ceil(min)}px`;
+          gap * kids.length +
+          36 +
+          parseFloat(cs.paddingTop) +
+          parseFloat(cs.paddingBottom) +
+          parseFloat(cs.borderTopWidth) +
+          parseFloat(cs.borderBottomWidth)
+      );
+      this._fullMin = min;
+      // the dashboard (Sections grid) gives less than that → compact layout, never overflow
+      if (hostH > 0 && hostH + 1 < min) {
+        this._compact = true;
+        card.style.minHeight = '';
+        return;
+      }
+      const mh = `${min}px`;
       if (card.style.minHeight !== mh) card.style.minHeight = mh;
+
       const h = main.clientHeight;
       if (!h) return;
       const tight = h < 46; // too short for the SETPOINT label
@@ -318,8 +339,46 @@ export class ThermostatCard extends LitElement {
     });
   };
 
+  private _parentOf(el: Node): HTMLElement | null {
+    const p = (el as HTMLElement).parentElement ?? ((el.getRootNode() as ShadowRoot).host as HTMLElement | undefined);
+    return p && p !== document.body && p !== document.documentElement ? p : null;
+  }
+
+  /**
+   * The Sections-grid cell holding this card: the nearest ancestor (or this element)
+   * whose parent is a CSS grid. HA wraps cards (hui-card) inside the cell, so the cell
+   * is usually one level up. Masonry / stack layouts have no grid parent → null.
+   */
+  private _gridCell(): HTMLElement | null {
+    let el: HTMLElement | null = this;
+    for (let i = 0; el && i < 4; i++) {
+      const p = this._parentOf(el);
+      if (!p) return null;
+      if (getComputedStyle(p).display.includes('grid')) return el;
+      el = p;
+    }
+    return null;
+  }
+
+  /** Height the dashboard gives the card (grid cell), or its own height otherwise. */
+  private _availableHeight(): number {
+    const cell = this._gridCell();
+    if (cell && cell !== this) {
+      // make this element fill the cell even when the wrapper in between has no height
+      const h = cell.clientHeight;
+      const want = `${h}px`;
+      if (h > 0 && this.style.height !== want) this.style.height = want;
+      return h;
+    }
+    if (this.style.height) this.style.height = '';
+    return this.clientHeight;
+  }
+
   protected override firstUpdated(): void {
     this._ro = new ResizeObserver(this._fit);
+    this._ro.observe(this);
+    const cell = this._gridCell();
+    if (cell && cell !== this) this._ro.observe(cell);
     const card = this.renderRoot.querySelector('ha-card');
     if (card) this._ro.observe(card);
     this._observeMain();
@@ -973,11 +1032,12 @@ export class ThermostatCard extends LitElement {
 
     return html`
       <ha-card
-        class="act-${act} ${live ? 'live' : ''} ${this._mode === 'off' ? 'is-off' : ''}"
+        class="act-${act} ${live ? 'live' : ''} ${this._mode === 'off' ? 'is-off' : ''} ${this._compact ? 'compact' : ''}"
         style="--st:${st};--flow-speed:${speed}s;${this._heightCss()}"
       >
         ${this._renderAmbient(act, live)}
-        ${this._renderHeader(act, live)} ${this._renderMain()} ${this._renderSelects()} ${this._renderModes()}
+        ${this._renderHeader(act, live)} ${this._compact ? nothing : this._renderMain()} ${this._renderSelects()}
+        ${this._renderModes()}
         ${this._renderMenu()}
       </ha-card>
     `;
@@ -1013,10 +1073,19 @@ export class ThermostatCard extends LitElement {
     const icon = live ? animIcon[act] ?? baseIcon : baseIcon;
     const off = this._mode === 'off';
     const shown = this._shownMode;
-    const info: InfoRow[] = c.info ?? [
-      { type: 'current_temperature' },
-      ...(a.current_humidity != null || c.humidity_entity ? [{ type: 'humidity' as const }] : []),
+    const info: InfoRow[] = [
+      ...(c.info ?? [
+        { type: 'current_temperature' as const },
+        ...(a.current_humidity != null ? [{ type: 'humidity' as const }] : []),
+      ]),
     ];
+    // a sensor picked in the editor is always shown, even with a custom `info` list
+    if (c.temperature_entity && !info.some((r) => r.type === 'current_temperature'))
+      info.unshift({ type: 'current_temperature' });
+    if (c.humidity_entity && !info.some((r) => r.type === 'humidity')) {
+      const t = info.findIndex((r) => r.type === 'current_temperature');
+      info.splice(t + 1, 0, { type: 'humidity' });
+    }
     const open = () => this._moreInfo(c.entity);
     // power always sits in the top-right corner
     const sw = this._switches().map((s, i) => ({ s, i }));
@@ -1065,6 +1134,7 @@ export class ThermostatCard extends LitElement {
           </div>
         </div>
         <div class="header-controls">
+          ${this._compact ? this._renderInlineSetpoint() : nothing}
           ${extras.map((x) => this._renderSwitch(x.s, x.i))}
           ${this._hasModeDropdown()
             ? html`<button
@@ -1129,6 +1199,16 @@ export class ThermostatCard extends LitElement {
           : nothing}
       </button>
     `;
+  }
+
+  private _renderInlineSetpoint(): TemplateResult {
+    const a = this._entity!.attributes;
+    const range = a.temperature == null && a.target_temp_low != null && a.target_temp_high != null;
+    return html`<div class="inline-sp">
+      ${range
+        ? html`${this._renderSetpoint('target_temp_low')}${this._renderSetpoint('target_temp_high')}`
+        : this._renderSetpoint('temperature')}
+    </div>`;
   }
 
   private _renderMain(): TemplateResult {

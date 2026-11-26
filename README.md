@@ -105,8 +105,10 @@ With no height set, the card takes its natural, compact height. Give it a height
 resizing the card in a Sections dashboard (or with the `height` option): the
 header and the selector row keep their size, and only the setpoint area in the middle
 grows or shrinks. When it gets small, the `SETPOINT` label is hidden first, then the
-number gets smaller. The card never shrinks below the height at which the setpoint is
-still readable.
+number gets smaller. With even less height (for example 2 rows in a Sections
+dashboard), the card switches to a compact layout like Bubble Card: `− 24 °C +` moves
+into the header next to the buttons, and the card still fits its space without
+overlapping the card below.
 
 ## How the controls behave
 
@@ -144,7 +146,7 @@ The editor writes the same options to YAML; you never need to edit it by hand.
 | `mode_dropdown` | auto | `true` / `false`. |
 | `switches` | power | `{ type: power }` or `{ entity, name, icon, icon_off, color, show_name }`. |
 | `selects` | from the entity | `{ type }` (`fan_mode`, `preset_mode`, `swing_mode`, `swing_horizontal_mode`, `hvac_mode`) or `{ entity }`, with `name`, `icon`, `options`, `labels`, `icons`, `show_value`. |
-| `temperature_entity`, `humidity_entity` | — | Sensors shown in the line under the name instead of the climate's own values. |
+| `temperature_entity`, `humidity_entity` | — | Sensors shown in the line under the name instead of the climate's own values. A sensor that is set is always shown. |
 | `info` | current temperature, humidity | `current_temperature`, `humidity`, `hvac_action`, `state`, `fan_mode`, `preset_mode`, `target_temperature`. |
 | `height` | automatic | Card height in px (or any CSS length). Only the setpoint area adapts. |
 | `step`, `decimals`, `unit` | entity | Setpoint step, decimals and unit text. |
