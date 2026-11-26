@@ -527,6 +527,8 @@ export class ThermostatCard extends LitElement {
     const ids = [this._config.entity];
     for (const s of this._config.switches ?? []) if (s.entity) ids.push(s.entity);
     for (const s of this._config.selects ?? []) if (s.entity) ids.push(s.entity);
+    if (this._config.temperature_entity) ids.push(this._config.temperature_entity);
+    if (this._config.humidity_entity) ids.push(this._config.humidity_entity);
     return ids;
   }
 
@@ -576,6 +578,15 @@ export class ThermostatCard extends LitElement {
 
   private _cap(str?: string): string {
     return str ? str.charAt(0).toUpperCase() + str.slice(1).replace(/_/g, ' ') : '';
+  }
+
+  /** Numeric state + unit of an external sensor, or undefined when missing / not a number. */
+  private _sensorNum(id?: string): { value: number; unit: string } | undefined {
+    const st = this._st(id);
+    if (!st) return undefined;
+    const v = parseFloat(st.state);
+    if (Number.isNaN(v)) return undefined;
+    return { value: v, unit: (st.attributes.unit_of_measurement as string | undefined) ?? '' };
   }
 
   private _fmt(t: number | undefined): string {
@@ -916,8 +927,11 @@ export class ThermostatCard extends LitElement {
     const e = this._entity!;
     const a = e.attributes;
     switch (row.type) {
-      case 'current_temperature':
+      case 'current_temperature': {
+        const ext = this._sensorNum(this._config.temperature_entity);
+        if (ext) return `${this._fmtCur(ext.value)}${ext.unit || this._unit}`;
         return a.current_temperature != null ? `${this._fmtCur(Number(a.current_temperature))}${this._unit}` : '—';
+      }
       case 'target_temperature':
         return a.temperature != null ? `${this._fmt(Number(a.temperature))}${this._unit}` : '—';
       case 'state':
@@ -928,6 +942,8 @@ export class ThermostatCard extends LitElement {
         return `${this._cap(e.state)} · ${this._cap(act)}`;
       }
       case 'humidity': {
+        const ext = this._sensorNum(this._config.humidity_entity);
+        if (ext) return `${Math.round(ext.value)}${ext.unit || '%'}`;
         const h = a.current_humidity ?? a.humidity;
         return h != null ? `${h}%` : '—';
       }
@@ -999,7 +1015,7 @@ export class ThermostatCard extends LitElement {
     const shown = this._shownMode;
     const info: InfoRow[] = c.info ?? [
       { type: 'current_temperature' },
-      ...(a.current_humidity != null ? [{ type: 'humidity' as const }] : []),
+      ...(a.current_humidity != null || c.humidity_entity ? [{ type: 'humidity' as const }] : []),
     ];
     const open = () => this._moreInfo(c.entity);
     // power always sits in the top-right corner
