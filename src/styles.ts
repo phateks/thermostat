@@ -663,12 +663,20 @@ export const cardStyles = css`
   .title-icon:focus-visible { outline: 2px solid var(--tc-accent); outline-offset: 2px; }
 
   /* ---------- Motion off ---------- */
+  /* animations: false in the editor — everything still (no background is rendered) */
   :host([no-anim]) *,
-  :host([no-anim]) ha-card::before { animation: none !important; }
-  :host([no-anim]) .opt { opacity: 1; }
+  :host([no-anim]) *::before,
+  :host([no-anim]) *::after { animation: none !important; }
+
+  /* Reduced motion (OS setting): no movement, but the background stays visible as a
+     still picture — warm glow + soft spots for heat, droplets for dry, airflow lines. */
   @media (prefers-reduced-motion: reduce) {
-    *, ha-card::before { animation: none !important; }
-    .opt { opacity: 1; }
+    *, *::before, *::after { animation: none !important; }
+    ha-card.live::before { opacity: 1; }
+    .amb-heat span { opacity: 0.2; transform: translateY(calc(-30px - var(--i, 0) * 6px)); }
+    .amb-heat span:nth-child(odd) { transform: translateY(-70px) scale(0.8); opacity: 0.14; }
+    .amb-dry span { opacity: 0.45; transform: translateY(40px); }
+    .amb-dry span:nth-child(even) { transform: translateY(80px); opacity: 0.3; }
   }
 
   /* ---------- Responsive (card width) ---------- */

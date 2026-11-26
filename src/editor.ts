@@ -74,7 +74,7 @@ const LABELS: Record<string, string> = {
   switch_on: 'Default color for switches that are on',
   temperature_entity: 'Temperature sensor (optional, instead of the climate value)',
   humidity_entity: 'Humidity sensor (optional)',
-  height: 'Card height in px (empty = automatic; only the setpoint area grows or shrinks)',
+  height: 'Card height in px (empty = automatic). Small heights switch to the compact layout.',
 };
 
 /* ── Editor ───────────────────────────────────────────────── */
@@ -139,6 +139,10 @@ export class ThermostatCardEditor extends LitElement {
         { name: 'temperature_entity', selector: { entity: { domain: 'sensor' } } },
         { name: 'humidity_entity', selector: { entity: { domain: 'sensor' } } },
       ]),
+      {
+        name: 'height',
+        selector: { number: { mode: 'box', min: 80, max: 800, step: 1, unit_of_measurement: 'px' } },
+      },
       grid([
         choice('preset', [
           { value: 'auto', label: 'Automatic' },
@@ -220,6 +224,7 @@ export class ThermostatCardEditor extends LitElement {
       power_on: c.power_on ?? 'last',
       mode_dropdown: c.mode_dropdown === true ? 'show' : c.mode_dropdown === false ? 'hide' : 'auto',
       animations: c.animations !== false,
+      height: typeof c.height === 'number' ? c.height : c.height ? parseFloat(String(c.height)) || undefined : undefined,
       info: (c.info ?? [{ type: 'current_temperature' }, { type: 'humidity' }]).map((i) => i.type),
     };
     const sws = this._switches;

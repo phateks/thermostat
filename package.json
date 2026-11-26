@@ -1,12 +1,12 @@
 {
   "name": "thermostat-card",
-  "version": "1.0.2",
+  "version": "0.2.0",
   "description": "Animated Home Assistant Lovelace card for thermostats and air conditioners: remote-style power button that resumes the last mode, mode dropdown, toggles, fan / preset / swing selectors and a debounced setpoint.",
   "type": "module",
   "main": "thermostat-card.js",
   "scripts": {
-    "build": "rollup -c",
-    "watch": "rollup -c --watch",
+    "build": "rollup -c rollup.config.js",
+    "watch": "rollup -c rollup.config.js --watch",
     "lint": "echo \"(no lint configured)\""
   },
   "keywords": [

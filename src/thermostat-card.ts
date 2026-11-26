@@ -360,8 +360,21 @@ export class ThermostatCard extends LitElement {
     return null;
   }
 
-  /** Height the dashboard gives the card (grid cell), or its own height otherwise. */
+  /** `height` option in px, when it is a plain number (or "123" / "123px"). */
+  private _configHeightPx(): number | undefined {
+    const h = this._config?.height;
+    if (h === undefined || h === null || h === '') return undefined;
+    const m = /^(\d+(?:\.\d+)?)(px)?$/.exec(String(h).trim());
+    return m ? parseFloat(m[1]) : undefined;
+  }
+
+  /** Height the dashboard gives the card (height option, grid cell), or its own height otherwise. */
   private _availableHeight(): number {
+    const fixed = this._configHeightPx();
+    if (fixed) {
+      if (this.style.height) this.style.height = '';
+      return fixed;
+    }
     const cell = this._gridCell();
     if (cell && cell !== this) {
       // make this element fill the cell even when the wrapper in between has no height

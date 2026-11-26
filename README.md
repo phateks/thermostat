@@ -91,7 +91,7 @@ Everything is set up in the **visual editor**. No YAML is needed.
 
 | Editor section | What you can set |
 | --- | --- |
-| Top | Entity, name, icon, an optional **temperature sensor** and **humidity sensor** from any other entity (for example a room sensor, when the climate entity reports none), card type (automatic / air conditioner / thermostat), what the power button turns on (last mode, the integration's choice, or always one mode), mode dropdown (automatic / show / hide), animations, and the items in the line under the name. |
+| Top | Entity, name, icon, an optional **temperature sensor** and **humidity sensor** from any other entity (for example a room sensor, when the climate entity reports none), **card height** in px, card type (automatic / air conditioner / thermostat), what the power button turns on (last mode, the integration's choice, or always one mode), mode dropdown (automatic / show / hide), animations, and the items in the line under the name. |
 | Header buttons | Add switches for `switch`, `input_boolean`, `light`, `fan`, `script` or `automation` entities, with icons for on and off, a colour, and an option to show the name with a small switch. Add or remove the power button. Reorder or remove buttons. |
 | Selectors | Add, reorder or remove selectors for fan mode, preset, vertical or horizontal swing, HVAC mode, or a `select` / `input_select` entity. Choose which options appear and give each option your own label (for example `fixed_middle` → `Middle`). |
 | Colors | A colour per mode and the default colour of switches that are on (optional). |
@@ -101,8 +101,9 @@ list.
 
 ### Height
 
-With no height set, the card takes its natural, compact height. Give it a height by
-resizing the card in a Sections dashboard (or with the `height` option): the
+With no height set, the card takes its natural, compact height. Give it a fixed height with
+**Card height (px)** in the editor (useful to fit a dedicated spot, for example on a
+wall tablet), or by resizing the card in a Sections dashboard: the
 header and the selector row keep their size, and only the setpoint area in the middle
 grows or shrinks. When it gets small, the `SETPOINT` label is hidden first, then the
 number gets smaller. With even less height (for example 2 rows in a Sections
