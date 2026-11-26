@@ -1,5 +1,5 @@
 /** Bumped by the release workflow — do not edit by hand. */
-export const CARD_VERSION = "0.2.0";
+export const CARD_VERSION = "1.0.1";
 
 export interface HomeAssistant {
   states: Record<string, HassEntity>;
