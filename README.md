@@ -43,8 +43,8 @@ Bubble-style selectors for fan, preset and swing. It uses the same visual style 
 - **Animations**: the icon flickers when heating, spins when cooling or on fan, and
   bobs when drying. Airflow lines move across the background faster or slower with the
   fan speed. The whole card takes the colour of the current mode.
-- **Visual editor** for everything: entity, power behaviour, switches, selectors,
-  option labels, setpoint and colours.
+- **Visual editor** for everything: entity, room sensors for temperature and humidity,
+  power behaviour, switches, selectors, option labels and colours.
 - **No inner boxes**, light and dark theme support, `prefers-reduced-motion` support and
   automatic layout for phone, tablet and desktop widths.
 
@@ -91,14 +91,22 @@ Everything is set up in the **visual editor**. No YAML is needed.
 
 | Editor section | What you can set |
 | --- | --- |
-| Top | Entity, name, icon, card type (automatic / air conditioner / thermostat), what the power button turns on (last mode, the integration's choice, or always one mode), mode dropdown (automatic / show / hide), animations, and the items in the line under the name. |
+| Top | Entity, name, icon, an optional **temperature sensor** and **humidity sensor** from any other entity (for example a room sensor, when the climate entity reports none), card type (automatic / air conditioner / thermostat), what the power button turns on (last mode, the integration's choice, or always one mode), mode dropdown (automatic / show / hide), animations, and the items in the line under the name. |
 | Header buttons | Add switches for `switch`, `input_boolean`, `light`, `fan`, `script` or `automation` entities, with icons for on and off, a colour, and an option to show the name with a small switch. Add or remove the power button. Reorder or remove buttons. |
 | Selectors | Add, reorder or remove selectors for fan mode, preset, vertical or horizontal swing, HVAC mode, or a `select` / `input_select` entity. Choose which options appear and give each option your own label (for example `fixed_middle` → `Middle`). |
-| Setpoint | Button size, step, decimals, the delay before the setpoint is sent, and how many options a dropdown shows before it scrolls. |
-| Mode buttons row & colors | An optional row of mode buttons for tablets, a colour per mode, and the default colour of switches that are on. |
+| Colors | A colour per mode and the default colour of switches that are on (optional). |
 
 The power button is always drawn in the top-right corner, whatever its place in the
 list.
+
+### Height
+
+With no height set, the card takes its natural, compact height. Give it a height by
+resizing the card in a Sections dashboard (or with the `height` option): the
+header and the selector row keep their size, and only the setpoint area in the middle
+grows or shrinks. When it gets small, the `SETPOINT` label is hidden first, then the
+number gets smaller. The card never shrinks below the height at which the setpoint is
+still readable.
 
 ## How the controls behave
 
@@ -136,7 +144,9 @@ The editor writes the same options to YAML; you never need to edit it by hand.
 | `mode_dropdown` | auto | `true` / `false`. |
 | `switches` | power | `{ type: power }` or `{ entity, name, icon, icon_off, color, show_name }`. |
 | `selects` | from the entity | `{ type }` (`fan_mode`, `preset_mode`, `swing_mode`, `swing_horizontal_mode`, `hvac_mode`) or `{ entity }`, with `name`, `icon`, `options`, `labels`, `icons`, `show_value`. |
+| `temperature_entity`, `humidity_entity` | — | Sensors shown in the line under the name instead of the climate's own values. |
 | `info` | current temperature, humidity | `current_temperature`, `humidity`, `hvac_action`, `state`, `fan_mode`, `preset_mode`, `target_temperature`. |
+| `height` | automatic | Card height in px (or any CSS length). Only the setpoint area adapts. |
 | `step`, `decimals`, `unit` | entity | Setpoint step, decimals and unit text. |
 | `buttons_size` | `large` | `small`, `medium`, `large`, `xlarge`. |
 | `debounce` | `700` | Milliseconds before the setpoint is sent. |

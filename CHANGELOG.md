@@ -16,7 +16,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Debounced, optimistic setpoint (`debounce`) and MIN / MAX setpoints for `heat_cool`.
 - Animations for each mode and fan-speed-driven airflow in the background (`animations`).
 - Light theme, reduced-motion support and responsive layout for phone, tablet and desktop.
-- Visual editor for every option: entity, power behaviour, header switches, selectors with per-option labels, setpoint and colours.
+- Visual editor: entity, room sensors, power behaviour, header switches, selectors with per-option labels and colours.
+- Optional temperature and humidity sensors from other entities for the line under the name (`temperature_entity`, `humidity_entity`).
+- Card height (`height` option or the Sections grid): only the setpoint area grows or shrinks.
 - Release workflow, HACS metadata and documentation.
 
 ### Changed

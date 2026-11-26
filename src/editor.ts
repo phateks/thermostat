@@ -16,10 +16,6 @@ const grid = (schema: unknown[]) => ({ type: 'grid', name: '', schema });
 const text = (name: string) => ({ name, selector: { text: {} } });
 const icon = (name: string) => ({ name, selector: { icon: {} } });
 const bool = (name: string) => ({ name, selector: { boolean: {} } });
-const num = (name: string, min?: number, max?: number, step = 1) => ({
-  name,
-  selector: { number: { mode: 'box', step, ...(min != null ? { min } : {}), ...(max != null ? { max } : {}) } },
-});
 const choice = (name: string, options: Array<{ value: string; label: string }>) => ({
   name,
   selector: { select: { mode: 'dropdown', options } },
@@ -76,6 +72,9 @@ const LABELS: Record<string, string> = {
   dry: 'Dry',
   fan_only: 'Fan only',
   switch_on: 'Default color for switches that are on',
+  temperature_entity: 'Temperature sensor (optional, instead of the climate value)',
+  humidity_entity: 'Humidity sensor (optional)',
+  height: 'Card height in px (empty = automatic; only the setpoint area grows or shrinks)',
 };
 
 /* ── Editor ───────────────────────────────────────────────── */
@@ -137,6 +136,10 @@ export class ThermostatCardEditor extends LitElement {
       { name: 'entity', required: true, selector: { entity: { domain: 'climate' } } },
       grid([text('name'), icon('icon')]),
       grid([
+        { name: 'temperature_entity', selector: { entity: { domain: 'sensor' } } },
+        { name: 'humidity_entity', selector: { entity: { domain: 'sensor' } } },
+      ]),
+      grid([
         choice('preset', [
           { value: 'auto', label: 'Automatic' },
           { value: 'ac', label: 'Air conditioner' },
@@ -160,21 +163,6 @@ export class ThermostatCardEditor extends LitElement {
         name: 'info',
         selector: { select: { multiple: true, mode: 'list', options: INFO_TYPES } },
       },
-    ];
-  }
-
-  private _setpointSchema(): unknown[] {
-    return [
-      grid([
-        choice('buttons_size', [
-          { value: 'small', label: 'Small' },
-          { value: 'medium', label: 'Medium' },
-          { value: 'large', label: 'Large' },
-          { value: 'xlarge', label: 'Extra large' },
-        ]),
-        num('menu_max_items', 3, 20),
-      ]),
-      grid([num('step', 0.1, 5, 0.1), num('decimals', 0, 2), num('debounce', 0, 5000, 100)]),
     ];
   }
 
@@ -301,42 +289,13 @@ export class ThermostatCardEditor extends LitElement {
       })}
       <button class="add wide" @click=${this._addSelect}>+ Add selector</button>
 
-      <ha-expansion-panel outlined .header=${'Setpoint'} class="top">
+      <ha-expansion-panel outlined .header=${'Colors'} class="top">
         <ha-form
           .hass=${this.hass}
-          .data=${{
-            buttons_size: c.buttons_size ?? 'large',
-            menu_max_items: c.menu_max_items ?? 8,
-            debounce: c.debounce ?? 700,
-            step: c.step,
-            decimals: c.decimals,
-          }}
-          .schema=${this._setpointSchema()}
-          .computeLabel=${this._label}
-          @value-changed=${this._mainChanged}
-        ></ha-form>
-      </ha-expansion-panel>
-
-      <ha-expansion-panel outlined .header=${'Mode buttons row & colors'}>
-        <ha-form
-          .hass=${this.hass}
-          .data=${{
-            modes: (c.modes ?? []).map((m) => (typeof m === 'string' ? m : m.name)),
-            ...(c.theme?.modes ?? {}),
-            switch_on: c.theme?.switch_on,
-          }}
-          .schema=${[
-            {
-              name: 'modes',
-              selector: {
-                select: { multiple: true, mode: 'list', options: allModes.map((m) => ({ value: m, label: cap(m) })) },
-              },
-            },
-            grid(colorModes.map((m) => text(m))),
-            text('switch_on'),
-          ]}
+          .data=${{ ...(c.theme?.modes ?? {}), switch_on: c.theme?.switch_on }}
+          .schema=${[grid(colorModes.map((m) => text(m))), text('switch_on')]}
           .computeLabel=${(s: { name: string }) =>
-            colorModes.includes(s.name) ? `${LABELS[s.name] ?? cap(s.name)} color` : this._label(s)}
+            colorModes.includes(s.name) ? `${LABELS[s.name] ?? cap(s.name)} color (e.g. #6cb4ff)` : this._label(s)}
           @value-changed=${this._themeChanged}
         ></ha-form>
       </ha-expansion-panel>
@@ -465,8 +424,6 @@ export class ThermostatCardEditor extends LitElement {
   private _themeChanged = (ev: CustomEvent): void => {
     ev.stopPropagation();
     const v = { ...ev.detail.value } as Record<string, any>;
-    const modes = (v.modes as string[] | undefined) ?? [];
-    delete v.modes;
     const switch_on = v.switch_on;
     delete v.switch_on;
     const colors = clean(v);
@@ -477,7 +434,6 @@ export class ThermostatCardEditor extends LitElement {
     this._emit(
       clean({
         ...this._config,
-        modes: modes.length ? modes : undefined,
         theme: Object.keys(theme).length ? theme : undefined,
       }) as ThermostatCardConfig
     );

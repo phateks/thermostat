@@ -190,7 +190,9 @@ export class ThermostatCard extends LitElement {
   }
 
   public getGridOptions() {
-    return { columns: 12, min_columns: 6, min_rows: 3 };
+    // rows left to the dashboard: when the Sections grid gives the card a height,
+    // the setpoint area shrinks or grows to fit it
+    return { columns: 12, min_columns: 6, min_rows: 2 };
   }
 
   /* ── Lifecycle ────────────────────────────────────────── */
@@ -216,6 +218,8 @@ export class ThermostatCard extends LitElement {
     document.removeEventListener('click', this._onDocClick, true);
     document.removeEventListener('keydown', this._onDocKey);
     this._unbindMenu();
+    this._ro?.disconnect();
+    this._ro = undefined;
     for (const p of Object.values(this._pending)) if (p.timer) clearTimeout(p.timer);
     this._pending = {};
     this._openSel = null;
@@ -262,8 +266,71 @@ export class ThermostatCard extends LitElement {
   protected override updated(changed: PropertyValues): void {
     if (changed.has('hass') && this.hass) this.toggleAttribute('light', this._dark(this.hass) === false);
     if (changed.has('_config')) this.toggleAttribute('no-anim', this._config?.animations === false);
+    this._observeMain();
+    // the style binding on ha-card resets the inline min-height on every render
+    this._fit();
     if (changed.has('_openSel')) this._syncMenu();
     else if (this._openSel) this._positionMenu();
+  }
+
+  /* ── Height fitting: only the setpoint area scales ───── */
+
+  private _ro?: ResizeObserver;
+  private _fitRaf = 0;
+
+  /**
+   * The header and the selector row keep their size; the setpoint area (flex: 1)
+   * gets whatever height is left. Its size is derived from that height, so with no
+   * height from outside the card keeps its natural size (the formula is a fixed point),
+   * and with a smaller / larger height from the dashboard or the `height` option the
+   * number and buttons shrink / grow (up to 1.3 × the chosen button size).
+   */
+  private _fit = () => {
+    cancelAnimationFrame(this._fitRaf);
+    this._fitRaf = requestAnimationFrame(() => {
+      const main = this.renderRoot.querySelector('.main') as HTMLElement | null;
+      const card = this.renderRoot.querySelector('ha-card') as HTMLElement | null;
+      if (!main || !card) return;
+      // never let a small height squash the card (overflow: hidden disables the automatic
+      // flex minimum): header + selectors + gaps + padding + a 36 px setpoint
+      const cs = getComputedStyle(card);
+      const kids = Array.from(card.children).filter(
+        (el) => el !== main && !el.classList.contains('amb') && !el.classList.contains('menu')
+      ) as HTMLElement[];
+      const gap = parseFloat(cs.rowGap) || 0;
+      const min =
+        kids.reduce((t, el) => t + el.offsetHeight, 0) +
+        gap * kids.length +
+        36 +
+        parseFloat(cs.paddingTop) +
+        parseFloat(cs.paddingBottom) +
+        parseFloat(cs.borderTopWidth) +
+        parseFloat(cs.borderBottomWidth);
+      const mh = `${Math.ceil(min)}px`;
+      if (card.style.minHeight !== mh) card.style.minHeight = mh;
+      const h = main.clientHeight;
+      if (!h) return;
+      const tight = h < 46; // too short for the SETPOINT label
+      const b = Math.round(Math.max(30, tight ? h : (h - 12) / 0.9));
+      const cur = parseFloat(main.style.getPropertyValue('--fit')) || 0;
+      if (Math.abs(b - cur) >= 1) main.style.setProperty('--fit', `${b}px`);
+      if ((main.dataset.tight === '1') !== tight) main.dataset.tight = tight ? '1' : '';
+    });
+  };
+
+  protected override firstUpdated(): void {
+    this._ro = new ResizeObserver(this._fit);
+    const card = this.renderRoot.querySelector('ha-card');
+    if (card) this._ro.observe(card);
+    this._observeMain();
+  }
+
+  private _observeMain() {
+    const main = this.renderRoot.querySelector('.main');
+    if (main && this._ro && (main as any).__tcObserved !== true) {
+      (main as any).__tcObserved = true;
+      this._ro.observe(main);
+    }
   }
 
   /* ── Floating dropdown (Bubble-style) ─────────────────── */
@@ -891,13 +958,21 @@ export class ThermostatCard extends LitElement {
     return html`
       <ha-card
         class="act-${act} ${live ? 'live' : ''} ${this._mode === 'off' ? 'is-off' : ''}"
-        style="--st:${st};--flow-speed:${speed}s"
+        style="--st:${st};--flow-speed:${speed}s;${this._heightCss()}"
       >
         ${this._renderAmbient(act, live)}
         ${this._renderHeader(act, live)} ${this._renderMain()} ${this._renderSelects()} ${this._renderModes()}
         ${this._renderMenu()}
       </ha-card>
     `;
+  }
+
+  private _heightCss(): string {
+    const h = this._config.height;
+    if (h === undefined || h === null || h === '') return '';
+    const v = typeof h === 'number' || /^\d+(\.\d+)?$/.test(String(h)) ? `${h}px` : String(h);
+    // min-height (from the content) still wins, so a too-small value cannot squash the card
+    return `height:${v};flex:none;`;
   }
 
   private _hasModeDropdown(): boolean {
@@ -962,11 +1037,13 @@ export class ThermostatCard extends LitElement {
             </div>
             <div class="sub">
               ${info.map(
-                (row, i) => html`${i ? html`<span class="sep">·</span>` : nothing}${!row.hide_label && row.label
-                    ? html`<span class="sub-l">${row.label}</span> `
-                    : INFO_ICONS[row.type]
-                    ? html`<ha-icon class="sub-ic" icon=${INFO_ICONS[row.type]}></ha-icon>`
-                    : nothing}<span class="sub-v">${this._infoValue(row)}</span>`
+                (row, i) => html`${i ? html`<span class="sep">·</span>` : nothing}<span class="si"
+                    >${!row.hide_label && row.label
+                      ? html`<span class="sub-l">${row.label}</span>`
+                      : INFO_ICONS[row.type]
+                      ? html`<ha-icon class="sub-ic" icon=${INFO_ICONS[row.type]}></ha-icon>`
+                      : nothing}<span class="sub-v">${this._infoValue(row)}</span></span
+                  >`
               )}
             </div>
           </div>

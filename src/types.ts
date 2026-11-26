@@ -126,6 +126,12 @@ export interface ThermostatCardConfig {
   power_on?: string;
   /** Show the mode dropdown next to the power button (default true for ac) */
   mode_dropdown?: boolean;
+  /** Sensor used for the current temperature instead of the climate attribute */
+  temperature_entity?: string;
+  /** Sensor used for humidity (e.g. a room sensor when the climate entity has none) */
+  humidity_entity?: string;
+  /** Card height (px number or any CSS length). Empty = natural height / the dashboard grid decides. */
+  height?: number | string;
   /** Max rows visible in a dropdown before it scrolls (default 8; also limited by the screen) */
   menu_max_items?: number;
   /** Ambient animations (airflow / heat shimmer / icon motion). Default true. */

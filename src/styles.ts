@@ -61,7 +61,10 @@ export const cardStyles = css`
     overflow: hidden;
     position: relative;
     font-variant-numeric: tabular-nums;
-    flex: 1 0 auto;
+    /* fills the height the dashboard gives (Sections rows / height option) and may
+       shrink below its natural size: only .main gives way */
+    flex: 1 1 auto;
+    /* min-height is set from JS (_fit): header + selectors + a readable setpoint */
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
@@ -106,6 +109,9 @@ export const cardStyles = css`
   }
 
   /* ---------- Header ---------- */
+  .header,
+  .sel-row,
+  .modes { flex: none; }
   .header {
     display: flex;
     align-items: center;
@@ -209,15 +215,21 @@ export const cardStyles = css`
     100% { box-shadow: 0 0 0 6px transparent; }
   }
   .sub {
+    display: flex;
+    align-items: center;
+    min-width: 0;
     font-size: 12.5px;
+    line-height: 16px;
     color: var(--tc-sub);
     white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis;
   }
-  .sub-v { color: var(--tc-txt); opacity: 0.9; }
-  .sub-ic { --mdc-icon-size: 14px; color: var(--tc-sub); margin-right: 2px; vertical-align: -2px; }
-  .sep { margin: 0 6px; opacity: 0.6; }
+  /* icon and value share one centre line */
+  .si { display: inline-flex; align-items: center; gap: 3px; min-width: 0; }
+  .sub-v { color: var(--tc-txt); opacity: 0.9; overflow: hidden; text-overflow: ellipsis; }
+  .sub-l { margin-right: 2px; }
+  .sub-ic { --mdc-icon-size: 15px; display: inline-flex; color: var(--tc-sub); flex-shrink: 0; }
+  .sep { margin: 0 7px; opacity: 0.6; }
 
   /* Header buttons: icon only, no frame; glow when on */
   .header-controls {
@@ -277,9 +289,21 @@ export const cardStyles = css`
   }
 
   /* ---------- Setpoint: big centred number, bare − / + ---------- */
-  .main { display: flex; justify-content: center; gap: 18px; padding: 2px 0; }
+  /* the only part that gives way to the card height */
+  .main {
+    flex: 1 1 auto;
+    /* below this the setpoint would not be readable: the card stops shrinking */
+    min-height: 36px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+  }
   .sp {
-    --b: 48px;
+    --b0: 44px;
+    /* --fit comes from the measured height of .main (see _fit) */
+    --b: clamp(30px, var(--fit, var(--b0)), calc(var(--b0) * 1.3));
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -287,15 +311,16 @@ export const cardStyles = css`
     flex: 1 1 0;
     max-width: 340px;
   }
-  .sp.sz-small { --b: 36px; }
-  .sp.sz-medium { --b: 42px; }
-  .sp.sz-xlarge { --b: 58px; }
+  .sp.sz-small { --b0: 32px; }
+  .sp.sz-medium { --b0: 38px; }
+  .sp.sz-xlarge { --b0: 54px; }
+  .main[data-tight='1'] .sp-label { display: none; }
   .sp-center { display: flex; flex-direction: column; align-items: center; min-width: 0; }
-  .sp-label { font-size: 10px; font-weight: 700; letter-spacing: 1px; color: var(--tc-sub); }
+  .sp-label { font-size: 10px; line-height: 12px; font-weight: 700; letter-spacing: 1px; color: var(--tc-sub); }
   .sp-val {
     font-size: calc(var(--b) * 0.9);
     font-weight: 700;
-    line-height: 1.05;
+    line-height: 1;
     color: var(--st);
     white-space: nowrap;
     display: inline-flex;
@@ -651,6 +676,5 @@ export const cardStyles = css`
   @container tc (max-width: 340px) {
     ha-card { padding: 10px; }
     .mode span { display: none; }
-    .sp { --b: 42px; }
   }
 `;
